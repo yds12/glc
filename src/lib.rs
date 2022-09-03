@@ -1,61 +1,80 @@
-#[derive(Debug, Clone)]
-struct Grammar(NonTerminal, Vec<Rule>);
+use rand::prelude::*;
 
 #[derive(Debug, Clone)]
-struct Rule(NonTerminal, RuleBody);
+pub struct Grammar(pub NonTerminal, pub Vec<Rule>);
 
 #[derive(Debug, Clone)]
-enum RuleBody {
+pub struct Rule(pub NonTerminal, pub RuleBody);
+
+#[derive(Debug, Clone)]
+pub enum RuleBody {
     Or(Or),
     Sequence(Sequence),
 }
 
 #[derive(Debug, Clone)]
-struct Or(Vec<Sequence>);
+pub struct Or(pub Vec<Sequence>);
 
 #[derive(Debug, Clone)]
-struct Sequence(Vec<Symbol>);
+pub struct Sequence(pub Vec<Symbol>);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum Symbol {
+pub enum Symbol {
     NonTerminal(NonTerminal),
     Terminal(Terminal),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct NonTerminal(String);
+pub struct NonTerminal(pub String);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct Terminal(String);
+pub struct Terminal(pub String);
 
 #[derive(Debug, Clone)]
-struct Derivation(Vec<Symbol>);
+pub struct Derivation(pub Vec<Symbol>);
 
 #[derive(Debug, Clone)]
-struct Expression(Vec<Terminal>);
+pub struct Expression(pub Vec<Terminal>);
 
+#[macro_export]
 macro_rules! seq_tsym {
     ($string:expr) => {
         Sequence(vec![Symbol::Terminal(Terminal($string.into()))])
     };
 }
 
+#[macro_export]
+macro_rules! rb_or_tsym {
+    ($( $string:expr ),*) => {
+        RuleBody::Or(Or(vec![
+            $(
+                Sequence(vec![Symbol::Terminal(Terminal($string.into()))])
+            ),*
+        ]))
+    };
+}
+
+#[macro_export]
 macro_rules! ntsym {
     ($string:expr) => {
         Symbol::NonTerminal(NonTerminal($string.into()))
     };
 }
 
+#[macro_export]
 macro_rules! nt {
     ($string:expr) => {
         NonTerminal($string.into())
     };
 }
 
+
 impl Grammar {
     /// Generate a random expression using the grammar
-    fn gen(&self) -> String {
-        todo!()
+    pub fn gen(&self) -> String {
+        let d = self.start_derivation();
+        let expr = d.derive(&self);
+        expr.to_string()
     }
 
     fn start_derivation(&self) -> Derivation {
@@ -63,12 +82,18 @@ impl Grammar {
     }
 
     fn choose_rule(&self, nt: NonTerminal) -> &Rule {
+        let mut rules = Vec::new();
+
         for rule in self.1.iter() {
             if rule.0 == nt {
-                return rule;
+                rules.push(rule);
             }
         }
-        panic!("no rule for {nt:?}");
+
+        rules.shuffle(&mut rand::thread_rng());
+        rules.iter().next().unwrap_or_else(||
+            panic!("no rule for {nt:?}")
+        )
     }
 }
 
@@ -168,7 +193,12 @@ impl std::fmt::Display for Expression {
 
 impl Or {
     fn choose_seq(&self) -> &Sequence {
-        self.0.iter().next().unwrap_or_else(|| panic!("or has no sequences"))
+        if self.0.is_empty() {
+            panic!("empty or");
+        }
+
+        let rand_index = rand::thread_rng().gen_range(0..self.0.len());
+        &self.0[rand_index]
     }
 }
 
@@ -182,34 +212,30 @@ mod tests {
             vec![
                 Rule(
                     nt!("S"),
-                    RuleBody::Sequence(Sequence(vec![ntsym!("A"), ntsym!("N")])),
+                    RuleBody::Sequence(Sequence(vec![ntsym!("A"), ntsym!("B")])),
+                ),
+                Rule(
+                    nt!("B"),
+                    RuleBody::Or(
+                        Or(vec![
+                           Sequence(vec![ntsym!("A"), ntsym!("B"), ntsym!("N")]),
+                           Sequence(vec![ntsym!("E")])
+                        ])
+                    )
+                ),
+                Rule(
+                    nt!("E"),
+                    rb_or_tsym!("")
                 ),
                 Rule(
                     nt!("A"),
-                    RuleBody::Or(Or(vec![
-                        seq_tsym!("a"),
-                        seq_tsym!("b"),
-                        seq_tsym!("c"),
-                        seq_tsym!("d"),
-                        seq_tsym!("e"),
-                        seq_tsym!("f"),
-                        seq_tsym!("g"),
-                    ])),
+                    rb_or_tsym!("a", "b", "c", "d", "e", "f", "g", "h", "i",
+                                "j", "k", "l", "m", "n", "o", "p", "q", "r",
+                                "s", "t", "u", "v", "w", "x", "y", "z")
                 ),
                 Rule(
                     nt!("N"),
-                    RuleBody::Or(Or(vec![
-                        seq_tsym!("0"),
-                        seq_tsym!("1"),
-                        seq_tsym!("2"),
-                        seq_tsym!("3"),
-                        seq_tsym!("4"),
-                        seq_tsym!("5"),
-                        seq_tsym!("6"),
-                        seq_tsym!("7"),
-                        seq_tsym!("8"),
-                        seq_tsym!("9"),
-                    ])),
+                    rb_or_tsym!("0", "1", "2", "3", "4", "5", "6", "7", "8", "9")
                 ),
             ],
         )
@@ -217,10 +243,12 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let g = build_grammar();
-        let d = g.start_derivation();
-        let expr = d.derive(&g);
+        let grammar = build_grammar();
+        let mut strings = Vec::new();
 
-        assert_eq!(expr.to_string(), "a0");
+        for _ in 0..10 {
+            strings.push(grammar.gen());
+        }
+        assert_eq!(strings, Vec::<String>::new());
     }
 }
