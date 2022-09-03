@@ -1,7 +1,16 @@
 [package]
+authors = ["Y. D. Santos <yds12@protonmail.com>"]
 name = "glc"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "Generate a random expression based on a Context Free Grammar"
+homepage = "https://github.com/yds12/glc"
+repository = "https://github.com/yds12/glc"
+readme = "README.md"
+documentation = "https://docs.rs/glc/latest"
+keywords = ["expression", "random", "grammar", "context-free", "generator"]
+categories = ["development-tools", "development-tools::testing", "parsing", "compilers", "text-processing"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
