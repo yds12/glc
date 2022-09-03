@@ -44,6 +44,18 @@ macro_rules! seq_tsym {
 }
 
 #[macro_export]
+macro_rules! t_or_rule {
+    ($nt:expr => $( $string:expr ),*) => {
+        Rule(NonTerminal($nt.into()),
+        RuleBody::Or(Or(vec![
+            $(
+                Sequence(vec![Symbol::Terminal(Terminal($string.into()))])
+            ),*
+        ])))
+    };
+}
+
+#[macro_export]
 macro_rules! rb_or_tsym {
     ($( $string:expr ),*) => {
         RuleBody::Or(Or(vec![
@@ -212,30 +224,15 @@ mod tests {
             vec![
                 Rule(
                     nt!("S"),
-                    RuleBody::Sequence(Sequence(vec![ntsym!("A"), ntsym!("B")])),
-                ),
-                Rule(
-                    nt!("B"),
-                    RuleBody::Or(
-                        Or(vec![
-                           Sequence(vec![ntsym!("A"), ntsym!("B"), ntsym!("N")]),
-                           Sequence(vec![ntsym!("E")])
-                        ])
-                    )
-                ),
-                Rule(
-                    nt!("E"),
-                    rb_or_tsym!("")
+                    RuleBody::Sequence(Sequence(vec![ntsym!("A"), ntsym!("N")])),
                 ),
                 Rule(
                     nt!("A"),
-                    rb_or_tsym!("a", "b", "c", "d", "e", "f", "g", "h", "i",
-                                "j", "k", "l", "m", "n", "o", "p", "q", "r",
-                                "s", "t", "u", "v", "w", "x", "y", "z")
+                    rb_or_tsym!("a")
                 ),
                 Rule(
                     nt!("N"),
-                    rb_or_tsym!("0", "1", "2", "3", "4", "5", "6", "7", "8", "9")
+                    rb_or_tsym!("0")
                 ),
             ],
         )
@@ -244,11 +241,6 @@ mod tests {
     #[test]
     fn it_works() {
         let grammar = build_grammar();
-        let mut strings = Vec::new();
-
-        for _ in 0..10 {
-            strings.push(grammar.gen());
-        }
-        assert_eq!(strings, Vec::<String>::new());
+        assert_eq!(grammar.gen(), "a0");
     }
 }
