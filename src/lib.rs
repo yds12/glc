@@ -249,6 +249,19 @@ impl std::fmt::Display for Expression {
     }
 }
 
+impl std::fmt::Display for Derivation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        for t in &self.0 {
+            match t {
+                Symbol::NonTerminal(s) => write!(f, "{}", s.0)?,
+                Symbol::Terminal(s) => write!(f, "{}", s.0)?,
+            }
+        }
+
+        Ok(())
+    }
+}
+
 impl Or {
     fn choose_seq(&self) -> &Sequence {
         if self.0.is_empty() {
