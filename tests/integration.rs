@@ -40,6 +40,7 @@ fn test_derivation() {
 
     while !derivation.is_done() {
         derivation.derive_step(&grammar);
+        println!("{derivation}");
     }
 
     let expr: Expression = derivation.into();

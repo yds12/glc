@@ -53,8 +53,11 @@ pub struct Terminal(pub String);
 /// A derivation starts with the starting non-terminal symbol of the grammar and
 /// progresses by iteratively replacing non-terminals by some sequence of
 /// symbols, according to the grammar rules.
+///
+/// The second parameter of type `usize` is the index of the last terminal
+/// symbol (used to improve performance).
 #[derive(Debug, Clone)]
-pub struct Derivation(pub Vec<Symbol>);
+pub struct Derivation(pub Vec<Symbol>, pub usize);
 
 /// An expression constituted of a sequence of terminal symbols. These
 /// expressions can be obtained by making a complete [`Derivation`] with the
@@ -131,7 +134,7 @@ impl Grammar {
     /// Start a [`Derivation`] based on this grammar. It will initially only
     /// have the starting [`Symbol`].
     pub fn start_derivation(&self) -> Derivation {
-        Derivation(vec![Symbol::NonTerminal(self.0.clone())])
+        Derivation(vec![Symbol::NonTerminal(self.0.clone())], 0)
     }
 
     fn choose_rule(&self, nt: NonTerminal) -> &Rule {
@@ -178,7 +181,7 @@ impl Derivation {
     /// Check if the [`Derivation`] is complete, i.e. it has no [`NonTerminal`]
     /// [`Symbol`]s, only [`Terminal`]s.
     pub fn is_done(&self) -> bool {
-        for symbol in &self.0 {
+        for symbol in &self.0[self.1..] {
             if let Symbol::NonTerminal(_) = symbol {
                 return false;
             }
@@ -188,7 +191,7 @@ impl Derivation {
     }
 
     fn find_nt(&self) -> Option<NonTerminal> {
-        for symbol in &self.0 {
+        for symbol in &self.0[self.1..] {
             if let Symbol::NonTerminal(nt) = symbol {
                 return Some(nt.clone());
             }
@@ -226,6 +229,7 @@ impl Derivation {
             }
         };
 
+        self.1 = index;
         self.0.splice(index..(index + 1), seq);
     }
 }
