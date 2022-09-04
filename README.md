@@ -36,6 +36,9 @@ The acronym stands for "gramática livre de contexto" (*context-free grammar*).
         println!("{}", grammar.gen());
     }
 
+For a real-life example take a look at
+[mexe](https://github.com/yds12/mexe/blob/master/tests/integration.rs).
+
 ## Links
 
 * Documentation: [docs.rs](https://docs.rs/glc/latest)
