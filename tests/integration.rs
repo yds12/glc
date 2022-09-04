@@ -1,4 +1,4 @@
-use glc::{Grammar, nt, t_or_rule, nt_seq_rule};
+use glc::{Grammar, Expression, nt, t_or_rule, nt_seq_rule};
 
 fn build_grammar() -> Grammar {
     Grammar(
@@ -31,4 +31,17 @@ fn test() {
         assert!(!s.is_empty());
         assert!(s.chars().next().unwrap().is_ascii_alphabetic());
     }
+}
+
+#[test]
+fn test_derivation() {
+    let grammar = build_grammar();
+    let mut derivation = grammar.start_derivation();
+
+    while !derivation.is_done() {
+        derivation.derive_step(&grammar);
+    }
+
+    let expr: Expression = derivation.into();
+    dbg!(expr);
 }

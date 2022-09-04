@@ -128,7 +128,9 @@ impl Grammar {
         expr.to_string()
     }
 
-    fn start_derivation(&self) -> Derivation {
+    /// Start a [`Derivation`] based on this grammar. It will initially only
+    /// have the starting [`Symbol`].
+    pub fn start_derivation(&self) -> Derivation {
         Derivation(vec![Symbol::NonTerminal(self.0.clone())])
     }
 
@@ -149,7 +151,9 @@ impl Grammar {
 }
 
 impl Derivation {
-    fn derive(mut self, grammar: &Grammar) -> Expression {
+    /// Apply rules until this [`Derivation`] is complete, and return the
+    /// finished [`Expression`].
+    pub fn derive(mut self, grammar: &Grammar) -> Expression {
         while !self.is_done() {
             self.derive_step(grammar);
         }
@@ -157,7 +161,8 @@ impl Derivation {
         self.into()
     }
 
-    fn derive_step(&mut self, grammar: &Grammar) {
+    /// Apply one rule to the [`Derivation`] (if it is not finished).
+    pub fn derive_step(&mut self, grammar: &Grammar) {
         if self.is_done() {
             return;
         }
@@ -170,7 +175,9 @@ impl Derivation {
         }
     }
 
-    fn is_done(&self) -> bool {
+    /// Check if the [`Derivation`] is complete, i.e. it has no [`NonTerminal`]
+    /// [`Symbol`]s, only [`Terminal`]s.
+    pub fn is_done(&self) -> bool {
         for symbol in &self.0 {
             if let Symbol::NonTerminal(_) = symbol {
                 return false;
