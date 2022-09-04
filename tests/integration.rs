@@ -1,26 +1,13 @@
-use glc::*;
+use glc::{Grammar, nt, t_or_rule, nt_seq_rule};
 
 fn build_grammar() -> Grammar {
     Grammar(
         nt!("S"),
         vec![
-            Rule(
-                nt!("S"),
-                RuleBody::Sequence(Sequence(vec![ntsym!("A"), ntsym!("B")])),
-            ),
-            Rule(
-                nt!("B"),
-                RuleBody::Or(
-                    Or(vec![
-                       Sequence(vec![ntsym!("A"), ntsym!("B"), ntsym!("N")]),
-                       Sequence(vec![ntsym!("E")])
-                    ])
-                )
-            ),
-            Rule(
-                nt!("E"),
-                rb_or_tsym!("")
-            ),
+            nt_seq_rule!("S" => "A", "B"),
+            nt_seq_rule!("B" => "A", "B", "N"),
+            nt_seq_rule!("B" => "E"),
+            t_or_rule!("E" => ""),
             t_or_rule!(
                 "A" => "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k",
                        "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v",
