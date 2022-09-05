@@ -1,3 +1,50 @@
+//! # glc
+//!
+//! This crate's aim is to generate random expressions based on a context-free
+//! grammar.
+//!
+//! The acronym stands for "gramática livre de contexto" (*context-free grammar*).
+//!
+//! ## How to Use
+//!
+//!     use glc::{Grammar, t_or_rule, nt_seq_rule};
+//!
+//!     fn main() {
+//!         let grammar = Grammar(
+//!             // starting symbol
+//!             "S".into(),
+//!
+//!             // vector of rules
+//!             vec![
+//!                 // a rule that generates a sequence of non-terminals: "A B"
+//!                 nt_seq_rule!("S" => "A", "B"),
+//!                 nt_seq_rule!("B" => "A", "B", "N"),
+//!                 nt_seq_rule!("B" => "E"),
+//!                 t_or_rule!("E" => ""),
+//!
+//!                 // a rule that is an "or" of terminals: any letter from a-z
+//!                 t_or_rule!(
+//!                     "A" => "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k",
+//!                            "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v",
+//!                            "w", "x", "y", "z"
+//!                 ),
+//!                 t_or_rule!("N" => "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"),
+//!             ],
+//!         );
+//!
+//!         // generate a random string with this grammar
+//!         println!("{}", grammar.gen());
+//!     }
+//!
+//! For a real-life example take a look at
+//! [mexe](https://github.com/yds12/mexe/blob/master/tests/integration.rs).
+//!
+//! ## Links
+//!
+//! * Documentation: [docs.rs](https://docs.rs/glc/latest)
+//! * Crate: [crates.io](https://crates.io/crates/glc) and [lib.rs](https://lib.rs/crates/glc)
+//! * Repository: [Github](https://github.com/yds12/glc)
+
 use rand::prelude::*;
 
 /// Represents a context-free grammar. Contains a [`NonTerminal`] which
@@ -89,7 +136,6 @@ macro_rules! t_or_rule {
     };
 }
 
-
 /// Represents a rule that replaces one non-terminal by a sequence of
 /// non-terminals. Invoke it like this:
 ///
@@ -113,21 +159,11 @@ macro_rules! nt_seq_rule {
     };
 }
 
-/// Generate a non-terminal symbol from a string.
-///
-/// A `nt!("A")` is equivalent to `NonTerminal("A".into())`.
-#[macro_export]
-macro_rules! nt {
-    ($string:expr) => {
-        $crate::NonTerminal($string.into())
-    };
-}
-
 impl Grammar {
     /// Generate a random expression using the grammar
     pub fn gen(&self) -> String {
         let d = self.start_derivation();
-        let expr = d.derive(&self);
+        let expr = d.derive(self);
         expr.to_string()
     }
 
@@ -147,9 +183,7 @@ impl Grammar {
         }
 
         rules.shuffle(&mut rand::thread_rng());
-        rules.iter().next().unwrap_or_else(||
-            panic!("no rule for {nt:?}")
-        )
+        rules.get(0).unwrap_or_else(|| panic!("no rule for {nt:?}"))
     }
 }
 
@@ -215,18 +249,14 @@ impl Derivation {
     fn apply(&mut self, rule: &Rule) {
         match self.find(&rule.0) {
             Some(index) => self.apply_at(rule, index),
-            None => panic!("rule cannot be applied")
+            None => panic!("rule cannot be applied"),
         }
     }
 
     fn apply_at(&mut self, rule: &Rule, index: usize) {
         let seq = match &rule.1 {
-            RuleBody::Sequence(seq) => {
-                seq.0.clone()
-            }
-            RuleBody::Or(or) => {
-                or.choose_seq().0.clone()
-            }
+            RuleBody::Sequence(seq) => seq.0.clone(),
+            RuleBody::Or(or) => or.choose_seq().0.clone(),
         };
 
         self.1 = index;
@@ -236,10 +266,20 @@ impl Derivation {
 
 impl From<Derivation> for Expression {
     fn from(d: Derivation) -> Self {
-        Self(d.0.into_iter().map(|sym| match sym {
-            Symbol::NonTerminal(_) => panic!("derivation is not complete"),
-            Symbol::Terminal(t) => t
-        }).collect())
+        Self(
+            d.0.into_iter()
+                .map(|sym| match sym {
+                    Symbol::NonTerminal(_) => panic!("derivation is not complete"),
+                    Symbol::Terminal(t) => t,
+                })
+                .collect(),
+        )
+    }
+}
+
+impl From<&str> for NonTerminal {
+    fn from(s: &str) -> Self {
+        NonTerminal(s.to_string())
     }
 }
 
@@ -279,11 +319,11 @@ impl Or {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Grammar, nt, nt_seq_rule, t_or_rule};
+    use crate::{nt_seq_rule, t_or_rule, Grammar};
 
     fn build_grammar() -> Grammar {
         Grammar(
-            nt!("S"),
+            "S".into(),
             vec![
                 nt_seq_rule!("S" => "A", "N"),
                 t_or_rule!("A" => "a"),

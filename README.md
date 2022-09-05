@@ -12,7 +12,7 @@ The acronym stands for "gramática livre de contexto" (*context-free grammar*).
     fn main() {
         let grammar = Grammar(
             // starting symbol
-            nt!("S"),
+            "S".into(),
 
             // vector of rules
             vec![
