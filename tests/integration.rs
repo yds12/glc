@@ -1,21 +1,16 @@
-use glc::{nt_seq_rule, t_or_rule, Expression, Grammar};
+use glc::{grammar, Expression, Grammar};
 
 fn build_grammar() -> Grammar {
-    Grammar(
-        "S".into(),
-        vec![
-            nt_seq_rule!("S" => "A", "B"),
-            nt_seq_rule!("B" => "A", "B", "N"),
-            nt_seq_rule!("B" => "E"),
-            t_or_rule!("E" => ""),
-            t_or_rule!(
-                "A" => "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k",
-                       "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v",
-                       "w", "x", "y", "z"
-            ),
-            t_or_rule!("N" => "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"),
-        ],
-    )
+    grammar!{
+        S => A B;
+        B => A B N;
+        B => E;
+        E => "";
+        A => "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k",
+             "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v",
+             "w", "x", "y", "z";
+        N => "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"
+    }
 }
 
 #[test]

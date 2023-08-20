@@ -7,30 +7,22 @@
 //!
 //! ## How to Use
 //!
-//!     use glc::{Grammar, t_or_rule, nt_seq_rule};
+//!     use glc::{Grammar, grammar};
 //!
 //!     fn main() {
-//!         let grammar = Grammar(
-//!             // starting symbol
-//!             "S".into(),
-//!
-//!             // vector of rules
-//!             vec![
-//!                 // a rule that generates a sequence of non-terminals: "A B"
-//!                 nt_seq_rule!("S" => "A", "B"),
-//!                 nt_seq_rule!("B" => "A", "B", "N"),
-//!                 nt_seq_rule!("B" => "E"),
-//!                 t_or_rule!("E" => ""),
-//!
-//!                 // a rule that is an "or" of terminals: any letter from a-z
-//!                 t_or_rule!(
-//!                     "A" => "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k",
-//!                            "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v",
-//!                            "w", "x", "y", "z"
-//!                 ),
-//!                 t_or_rule!("N" => "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"),
-//!             ],
-//!         );
+//!         let grammar = grammar!{
+//!             // The first non-terminal seen (head of the 1st rule) will be
+//!             // the starting symbol (in this case: `S`).
+//!             S => A B;
+//!             B => A B N;
+//!             B => E;
+//!             E => "";
+//!             // Or transform a non-terminal in one among many terminals
+//!             A => "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k",
+//!                  "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v",
+//!                  "w", "x", "y", "z";
+//!             N => "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"
+//!         };
 //!
 //!         // generate a random string with this grammar
 //!         println!("{}", grammar.gen());
@@ -125,6 +117,10 @@ pub struct Expression(pub Vec<Terminal>);
 /// either "a" or "b" (both terminals). Note that you can have any number of
 /// elements after the `=>`.
 #[macro_export]
+#[deprecated(
+    since = "0.4.1",
+    note = "please use the `grammar` or `rule` macro instead"
+)]
 macro_rules! t_or_rule {
     ($nt:expr => $( $string:expr ),*) => {
         $crate::Rule($crate::NonTerminal($nt.into()),
@@ -148,12 +144,96 @@ macro_rules! t_or_rule {
 /// non-terminals "B" "C". Note that you can have any number of elements after
 /// the `=>`.
 #[macro_export]
+#[deprecated(
+    since = "0.4.1",
+    note = "please use the `grammar` or `rule` macro instead"
+)]
 macro_rules! nt_seq_rule {
     ($nt:expr => $( $string:expr ),*) => {
         $crate::Rule($crate::NonTerminal($nt.into()),
         $crate::RuleBody::Sequence($crate::Sequence(vec![
             $(
                 $crate::Symbol::NonTerminal($crate::NonTerminal($string.into()))
+            ),*
+        ])))
+    };
+}
+
+/// Generate a grammar using the following syntax:
+///
+/// ```
+/// # use glc::grammar;
+/// let _g = grammar!{
+///     S => A B C;
+///     A => "a", "A";
+///     B => "b";
+///     C => ""
+/// };
+/// ```
+///
+/// As shown above, each rule is either a sequence of non-terminals, or a
+/// disjuction of terminals (should be literals, comma-separated).
+#[macro_export]
+macro_rules! grammar {
+    ($start:ident $($rest:tt)*) => {
+        $crate::Grammar(
+            stringify!($start).into(),
+            $crate::rules!([$start $($rest)*] [] [])
+        )
+    };
+}
+
+#[macro_export]
+#[doc(hidden)]
+macro_rules! rules {
+    // found `;`, emit a rule (case to handle trailing `;`)
+    ([;] [$($rule:tt)*] [$($emitted:tt)*]) => {
+        vec![ $($emitted)* $crate::rule!($($rule)*) ]
+    };
+    // found `;`, emit a rule
+    ([; $($rest:tt)*] [$($rule:tt)*] [$($emitted:tt)*]) => {
+        $crate::rules!([$($rest)*] [] [$($emitted)* $crate::rule!($($rule)*) ,])
+    };
+    // emit last rule
+    ([] [$($rule:tt)*] [$($emitted:tt)*]) => {
+        vec![ $($emitted)* $crate::rule!($($rule)*) ]
+    };
+    // push one more token into the rule
+    ([$first:tt $($rest:tt)*] [] [$($emitted:tt)*]) => {
+        $crate::rules!([$($rest)*] [$first] [$($emitted)*])
+    };
+    // push one more token into the rule
+    ([$first:tt $($rest:tt)*] [$($rule:tt)*] [$($emitted:tt)*]) => {
+        $crate::rules!([$($rest)*] [$($rule)* $first] [$($emitted)*])
+    };
+}
+
+/// Parse a rule.
+///
+/// ```
+/// # use glc::rule;
+///
+/// let r1 = rule!{ A => B C };
+/// let r2 = rule!{ B => "b", "c" };
+///
+/// ```
+/// Each rule is either a sequence of non-terminals, or a
+/// disjuction of terminals (should be literals, comma-separated).
+#[macro_export]
+macro_rules! rule {
+    ($head:ident => $($nt:ident)*) => {
+        $crate::Rule($crate::NonTerminal(stringify!($head).into()),
+        $crate::RuleBody::Sequence($crate::Sequence(vec![
+            $(
+                $crate::Symbol::NonTerminal($crate::NonTerminal(stringify!($nt).into()))
+            ),*
+        ])))
+    };
+    ($head:ident => $($t:literal),*) => {
+        $crate::Rule($crate::NonTerminal(stringify!($head).into()),
+        $crate::RuleBody::Or($crate::Or(vec![
+            $(
+                $crate::Sequence(vec![$crate::Symbol::Terminal($crate::Terminal($t.into()))])
             ),*
         ])))
     };
@@ -319,22 +399,101 @@ impl Or {
 
 #[cfg(test)]
 mod tests {
-    use crate::{nt_seq_rule, t_or_rule, Grammar};
+    use crate::*;
 
     fn build_grammar() -> Grammar {
-        Grammar(
-            "S".into(),
-            vec![
-                nt_seq_rule!("S" => "A", "N"),
-                t_or_rule!("A" => "a"),
-                t_or_rule!("N" => "0"),
-            ],
-        )
+        grammar! {
+            S => A N;
+            A => "a";
+            N => "0"
+        }
     }
 
     #[test]
     fn it_works() {
         let grammar = build_grammar();
         assert_eq!(grammar.gen(), "a0");
+    }
+
+    mod grammar_macro {
+        use crate::*;
+
+        #[test]
+        fn small() {
+            let g: Grammar = grammar! {
+                A => B C;
+                B => "b";
+                C => "c"
+            };
+            assert_eq!(g.gen(), "bc");
+
+            let g: Grammar = grammar! {
+                A => B C;
+                B => "b";
+                C => "c";
+            };
+            assert_eq!(g.gen(), "bc");
+
+            let g: Grammar = grammar! {
+                A => B C;
+                B => D;
+                C => "c";
+                D => "d"
+            };
+            assert_eq!(g.gen(), "dc");
+
+            let g: Grammar = grammar! {
+                A => B C;
+                B => D;
+                C => "c";
+                D => "d", "x"
+            };
+            let word = g.gen();
+            assert!(word == "dc" || word == "xc");
+        }
+
+        #[test]
+        fn medium() {
+            let g = grammar! {
+                S => B A;
+                A => B A;
+                A => E;
+                E => "";
+                B => "a", "b", "c"
+            };
+
+            for _ in 0..100 {
+                let w = g.gen();
+                assert!(w.chars().all(|c| c == 'a' || c == 'b' || c == 'c'));
+            }
+        }
+
+        #[test]
+        fn large1() {
+            let _ = grammar! {
+                S => B A;
+                A => B A B;
+                A => E;
+                E => "";
+                B => X Y;
+                B => "a", "b", "c";
+                X => "x", "eks";
+                Y => ""
+            };
+        }
+
+        #[test]
+        fn large2() {
+            let _ = grammar! {
+                S => B A;
+                A => B A B;
+                A => E;
+                E => "";
+                B => X Y;
+                B => "a", "b", "c";
+                X => "x", "eks";
+                Y => "";
+            };
+        }
     }
 }
